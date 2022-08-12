@@ -1,15 +1,14 @@
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
 plugins {
-  kotlin("multiplatform") version "1.4.20"
-  kotlin("plugin.serialization") version "1.4.20"
-  id("org.jetbrains.dokka") version "1.4.10.2"
+  kotlin("multiplatform") version "1.7.10"
+  kotlin("plugin.serialization") version "1.7.10"
+  id("org.jetbrains.dokka") version "1.7.10"
   `maven-publish`
 }
 
 repositories {
   mavenCentral()
-  jcenter()
 }
 
 kotlin {
@@ -45,7 +44,7 @@ kotlin {
     val commonMain by getting {
       dependencies {
         implementation(kotlin("reflect"))
-        implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1")
+        implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
       }
     }
 
@@ -104,31 +103,15 @@ kotlin {
     }
 
     all {
-      languageSettings.useExperimentalAnnotation("kotlin.RequiresOptIn")
-      languageSettings.useExperimentalAnnotation("kotlinx.serialization.ExperimentalSerializationApi")
-      languageSettings.enableLanguageFeature("InlineClasses")
+      languageSettings.optIn("kotlin.RequiresOptIn")
+      languageSettings.optIn("kotlinx.serialization.ExperimentalSerializationApi")
     }
   }
 }
 
 publishing {
-  val key = System.getenv("BINTRAY_API_KEY")
-  val user = "ricky12awesome"
-
   repositories {
     mavenLocal()
-
-    if (key != null) {
-      maven {
-        name = "bintray"
-        url = uri("https://api.bintray.com/maven/$user/github/json-schema-serialization/;publish=0;override=1")
-
-        credentials {
-          username = user
-          password = key
-        }
-      }
-    }
   }
 }
 

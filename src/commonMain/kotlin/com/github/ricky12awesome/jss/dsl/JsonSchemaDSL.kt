@@ -7,6 +7,7 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.*
 import kotlinx.serialization.serializer
+import kotlin.jvm.JvmInline
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
@@ -77,13 +78,14 @@ sealed class PropertyType<T, B : PropertyBuilder<T>>(val builder: () -> B) {
 
   inline fun build(definitions: ObjectBuilder.Definitions?, body: B.() -> Unit): JsonObject {
     return when (this) {
-      Object -> build(ObjectBuilder(definitions, false) as B, body)
+      is Object -> build(ObjectBuilder(definitions, false) as B, body)
       else -> build(body)
     }
   }
 }
 
-inline class DefinitionReference(val id: String) {
+@JvmInline
+value class DefinitionReference(val id: String) {
   val url get() = JsonPrimitive("#/definitions/$id")
 }
 
@@ -152,24 +154,24 @@ class ObjectBuilder(
     val required = mutableListOf<String>()
 
     @ExperimentalJsonSchemaDSL
-    inline fun <B : PropertyBuilder<*>> property(
+    inline fun <T, B : PropertyBuilder<T>> property(
       name: String,
-      type: PropertyType<*, B>,
+      type: PropertyType<T, B>,
       isRequired: Boolean = true,
       builder: B.() -> Unit
     ) = propertyUnsafe(name, buildProperty(type, builder), isRequired)
 
     @ExperimentalJsonSchemaDSL
-    inline fun <B : PropertyBuilder<*>> requiredProperty(
+    inline fun <T, B : PropertyBuilder<T>> requiredProperty(
       name: String,
-      type: PropertyType<*, B>,
+      type: PropertyType<T, B>,
       builder: B.() -> Unit
     ) = property(name, type, true, builder)
 
     @ExperimentalJsonSchemaDSL
-    inline fun <B : PropertyBuilder<*>> optionalProperty(
+    inline fun <T, B : PropertyBuilder<T>> optionalProperty(
       name: String,
-      type: PropertyType<*, B>,
+      type: PropertyType<T, B>,
       builder: B.() -> Unit
     ) = property(name, type, false, builder)
 

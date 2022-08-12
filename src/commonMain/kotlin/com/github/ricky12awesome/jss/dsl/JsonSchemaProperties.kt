@@ -3,80 +3,76 @@ package com.github.ricky12awesome.jss.dsl
 import com.github.ricky12awesome.jss.globalJson
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.json.*
-import kotlin.properties.ReadWriteProperty
-import kotlin.reflect.KProperty
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
 
-class PropertyDelegate<T, B : PropertyBuilder<T>, V>(
-  val id: String? = null,
-  val default: JsonElement = JsonNull,
-  val get: B.(JsonElement) -> V,
-  val set: B.(V) -> JsonElement
-) : ReadWriteProperty<B, V> {
-  override fun getValue(thisRef: B, property: KProperty<*>): V {
-    return thisRef.get(thisRef.data[id ?: property.name] ?: default)
+private val DEFAULT_ENUM = JsonArray(listOf())
+
+var <T> PropertyBuilder<T>.enum
+  get() = globalJson.decodeFromJsonElement(
+    ListSerializer(serializer), data[null ?: "enum"] ?: DEFAULT_ENUM
+  )
+  set(value) {
+    data["enum"] = globalJson.encodeToJsonElement(ListSerializer(serializer), value)
   }
 
-  override fun setValue(thisRef: B, property: KProperty<*>, value: V) {
-    thisRef.data[id ?: property.name] = thisRef.set(value)
+var <T> PropertyBuilder<T>.const
+  get() = globalJson.decodeFromJsonElement(serializer, data["const"] ?: JsonNull)
+  set(value) {
+    data["const"] = globalJson.encodeToJsonElement(serializer, value)
   }
-}
 
-var <T> PropertyBuilder<T>.enum by PropertyDelegate(
-  default = JsonArray(listOf()),
-  get = { globalJson.decodeFromJsonElement(ListSerializer(serializer), it) },
-  set = { globalJson.encodeToJsonElement(ListSerializer(serializer), it) }
-)
+private val EMPTY_JSON_STRING = JsonPrimitive("")
 
-var <T> PropertyBuilder<T>.const by PropertyDelegate(
-  default = JsonNull,
-  get = { globalJson.decodeFromJsonElement(serializer, it) },
-  set = { globalJson.encodeToJsonElement(serializer, it) }
-)
+var <T> PropertyBuilder<T>.description
+  get() = globalJson.decodeFromJsonElement(
+    String.serializer(), data["description"] ?: EMPTY_JSON_STRING
+  )
+  set(value) {
+    data["description"] = globalJson.encodeToJsonElement(String.serializer(), value)
+  }
 
-var <T> PropertyBuilder<T>.description by PropertyDelegate(
-  default = JsonPrimitive(""),
-  get = { globalJson.decodeFromJsonElement(String.serializer(), it) },
-  set = { globalJson.encodeToJsonElement(String.serializer(), it) }
-)
+var StringPropertyBuilder.pattern
+  get() = globalJson.decodeFromJsonElement(serializer, data["pattern"] ?: EMPTY_JSON_STRING)
+    .toRegex()
+  set(value) {
+    data["pattern"] = globalJson.encodeToJsonElement(serializer, value.toString())
+  }
 
-var StringPropertyBuilder.pattern by PropertyDelegate(
-  default = JsonPrimitive(""),
-  get = { globalJson.decodeFromJsonElement(serializer, it).toRegex() },
-  set = { globalJson.encodeToJsonElement(serializer, it.toString()) }
-)
+var <T> PropertyBuilder<T>.default
+  get() = globalJson.decodeFromJsonElement(serializer, data["default"] ?: JsonNull)
+  set(value) {
+    data["default"] = globalJson.encodeToJsonElement(serializer, value)
+  }
 
-var <T> PropertyBuilder<T>.default by PropertyDelegate(
-  default = JsonNull,
-  get = { globalJson.decodeFromJsonElement(serializer, it) },
-  set = { globalJson.encodeToJsonElement(serializer, it) }
-)
+private val JSON_ZERO = JsonPrimitive(0)
 
-var <T : Number> NumberPropertyBuilder<T>.minimum by PropertyDelegate(
-  default = JsonPrimitive(0),
-  get = { globalJson.decodeFromJsonElement(serializer, it) },
-  set = { globalJson.encodeToJsonElement(serializer, it) }
-)
+var <T : Number> NumberPropertyBuilder<T>.minimum
+  get() = globalJson.decodeFromJsonElement(serializer, data["minimum"] ?: JSON_ZERO)
+  set(value) {
+    data["minimum"] = globalJson.encodeToJsonElement(serializer, value)
+  }
 
-var <T : Number> NumberPropertyBuilder<T>.maximum by PropertyDelegate(
-  default = JsonPrimitive(0),
-  get = { globalJson.decodeFromJsonElement(serializer, it) },
-  set = { globalJson.encodeToJsonElement(serializer, it) }
-)
+var <T : Number> NumberPropertyBuilder<T>.maximum
+  get() = globalJson.decodeFromJsonElement(serializer, data["maximum"] ?: JSON_ZERO)
+  set(value) {
+    data["maximum"] = globalJson.encodeToJsonElement(serializer, value)
+  }
 
 @ExperimentalJsonSchemaDSL
-var <T, B : PropertyBuilder<T>> ArrayPropertyBuilder<T, B>.minItems by PropertyDelegate(
-  default = JsonPrimitive(0),
-  get = { globalJson.decodeFromJsonElement(Int.serializer(), it) },
-  set = { globalJson.encodeToJsonElement(Int.serializer(), it) }
-)
+var <T, B : PropertyBuilder<T>> ArrayPropertyBuilder<T, B>.minItems
+  get() = globalJson.decodeFromJsonElement(Int.serializer(), data["minItems"] ?: JSON_ZERO)
+  set(value) {
+    data["minItems"] = globalJson.encodeToJsonElement(Int.serializer(), value)
+  }
 
 @ExperimentalJsonSchemaDSL
-var <T, B : PropertyBuilder<T>> ArrayPropertyBuilder<T, B>.maxItems by PropertyDelegate(
-  default = JsonPrimitive(0),
-  get = { globalJson.decodeFromJsonElement(Int.serializer(), it) },
-  set = { globalJson.encodeToJsonElement(Int.serializer(), it) }
-)
+var <T, B : PropertyBuilder<T>> ArrayPropertyBuilder<T, B>.maxItems
+  get() = globalJson.decodeFromJsonElement(Int.serializer(), data["maxItems"] ?: JSON_ZERO)
+  set(value) {
+    data["maxItems"] = globalJson.encodeToJsonElement(Int.serializer(), value)
+  }
 
 @ExperimentalJsonSchemaDSL
 inline fun <T, B : PropertyBuilder<T>> ArrayPropertyBuilder<T, B>.items(builder: B.() -> Unit) {
@@ -84,7 +80,7 @@ inline fun <T, B : PropertyBuilder<T>> ArrayPropertyBuilder<T, B>.items(builder:
 }
 
 @ExperimentalJsonSchemaDSL
-inline fun CommonObjectBuilder<*>.additionalProperties(value: Boolean) {
+fun CommonObjectBuilder<*>.additionalProperties(value: Boolean) {
   data["additionalProperties"] = JsonPrimitive(value)
 }
 
@@ -109,4 +105,3 @@ inline fun CommonObjectBuilder<*>.propertyNames(
 ) {
   data["propertyNames"] = buildProperty(PropertyType.String, builder)
 }
-
